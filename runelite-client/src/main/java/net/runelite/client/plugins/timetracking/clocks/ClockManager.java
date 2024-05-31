@@ -24,6 +24,7 @@
  */
 package net.runelite.client.plugins.timetracking.clocks;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Comparators;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -34,9 +35,9 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
-import joptsimple.internal.Strings;
 import lombok.Getter;
 import net.runelite.client.Notifier;
+import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.plugins.timetracking.SortOrder;
 import net.runelite.client.plugins.timetracking.TimeTrackingConfig;
@@ -63,12 +64,19 @@ public class ClockManager
 	private final List<Stopwatch> stopwatches = new ArrayList<>();
 
 	@Getter
+	private final List<Timer> favouriteTimers = new ArrayList<>();
+
+	@Getter
+	private final List<Stopwatch> favouriteStopwatches = new ArrayList<>();
+
+	@Getter
 	private ClockTabPanel clockTabPanel = new ClockTabPanel(this);
 
 	void addTimer()
 	{
 		timers.add(new Timer("Timer " + (timers.size() + 1), config.defaultTimerMinutes() * 60));
 		saveTimers();
+		saveFavouriteTimers();
 
 		SwingUtilities.invokeLater(clockTabPanel::rebuild);
 	}
@@ -77,6 +85,7 @@ public class ClockManager
 	{
 		stopwatches.add(new Stopwatch("Stopwatch " + (stopwatches.size() + 1)));
 		saveStopwatches();
+		saveFavouriteStopwatches();
 
 		SwingUtilities.invokeLater(clockTabPanel::rebuild);
 	}
@@ -84,7 +93,13 @@ public class ClockManager
 	void removeTimer(Timer timer)
 	{
 		timers.remove(timer);
+
+		if (timer.isFavourite())
+		{
+			favouriteTimers.remove(timer);
+		}
 		saveTimers();
+		saveFavouriteTimers();
 
 		SwingUtilities.invokeLater(clockTabPanel::rebuild);
 	}
@@ -92,18 +107,65 @@ public class ClockManager
 	void removeStopwatch(Stopwatch stopwatch)
 	{
 		stopwatches.remove(stopwatch);
+
+		if (stopwatch.isFavourite())
+		{
+			favouriteStopwatches.remove(stopwatch);
+		}
+
 		saveStopwatches();
+		saveFavouriteStopwatches();
 
 		SwingUtilities.invokeLater(clockTabPanel::rebuild);
 	}
 
-	public long getActiveTimerCount()
+	void favouriteTimer(Timer timer)
 	{
+		if (!timer.isFavourite())
+		{
+			favouriteTimers.remove(timer);
+			saveTimers();
+			saveFavouriteTimers();
+
+			SwingUtilities.invokeLater(clockTabPanel::rebuild);
+		}
+		else
+		{
+			favouriteTimers.add(timer);
+			saveTimers();
+			saveFavouriteTimers();
+
+			SwingUtilities.invokeLater(clockTabPanel::rebuild);
+		}
+
+	}
+
+	void favouriteStopwatch(Stopwatch stopwatch) {
+		if (!stopwatch.isFavourite())
+		{
+			favouriteStopwatches.remove(stopwatch);
+			saveStopwatches();
+			saveFavouriteStopwatches();
+
+			SwingUtilities.invokeLater(clockTabPanel::rebuild);
+		}
+		else
+		{
+			favouriteStopwatches.add(stopwatch);
+			saveStopwatches();
+			saveFavouriteStopwatches();
+
+			SwingUtilities.invokeLater(clockTabPanel::rebuild);
+		}
+
+	}
+
+
+	public long getActiveTimerCount() {
 		return timers.stream().filter(Timer::isActive).count();
 	}
 
-	public long getActiveStopwatchCount()
-	{
+	public long getActiveStopwatchCount() {
 		return stopwatches.stream().filter(Stopwatch::isActive).count();
 	}
 
@@ -121,10 +183,7 @@ public class ClockManager
 				timer.pause();
 				changed = true;
 
-				if (config.timerNotification())
-				{
-					notifier.notify("[" + timer.getName() + "] has finished counting down.");
-				}
+				notifier.notify(config.timerNotification(), "[" + timer.getName() + "] has finished counting down.");
 
 				if (timer.isLoop())
 				{
@@ -136,6 +195,7 @@ public class ClockManager
 		if (changed)
 		{
 			saveTimers();
+			saveFavouriteTimers();
 			SwingUtilities.invokeLater(clockTabPanel::rebuild);
 		}
 
@@ -190,6 +250,14 @@ public class ClockManager
 			{
 			}.getType());
 
+			for (Timer element: timers)
+			{
+				if (element.isFavourite())
+				{
+					favouriteTimers.add(element);
+				}
+			}
+
 			this.timers.clear();
 			this.timers.addAll(timers);
 			SwingUtilities.invokeLater(clockTabPanel::rebuild);
@@ -206,6 +274,13 @@ public class ClockManager
 			{
 			}.getType());
 
+			for (Stopwatch element: stopwatches)
+			{
+				if (element.isFavourite()){
+					favouriteStopwatches.add(element);
+				}
+			}
+
 			this.stopwatches.clear();
 			this.stopwatches.addAll(stopwatches);
 			SwingUtilities.invokeLater(clockTabPanel::rebuild);
@@ -216,6 +291,8 @@ public class ClockManager
 	{
 		timers.clear();
 		stopwatches.clear();
+		favouriteTimers.clear();
+		favouriteStopwatches.clear();
 
 		SwingUtilities.invokeLater(clockTabPanel::rebuild);
 	}
@@ -224,6 +301,8 @@ public class ClockManager
 	{
 		saveTimers();
 		saveStopwatches();
+		saveFavouriteTimers();
+		saveFavouriteStopwatches();
 	}
 
 	void saveTimers()
@@ -236,5 +315,17 @@ public class ClockManager
 	{
 		final String json = gson.toJson(stopwatches);
 		configManager.setConfiguration(TimeTrackingConfig.CONFIG_GROUP, TimeTrackingConfig.STOPWATCHES, json);
+	}
+
+	void saveFavouriteTimers()
+	{
+		final String json = gson.toJson(favouriteTimers);
+		configManager.setConfiguration(TimeTrackingConfig.CONFIG_GROUP, TimeTrackingConfig.FAVOURITETIMERS, json);
+	}
+
+	void saveFavouriteStopwatches()
+	{
+		final String json = gson.toJson(favouriteStopwatches);
+		configManager.setConfiguration(TimeTrackingConfig.CONFIG_GROUP, TimeTrackingConfig.FAVOURITESTOPWATCHES, json);
 	}
 }

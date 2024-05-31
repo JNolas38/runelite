@@ -54,6 +54,8 @@ import static net.runelite.client.plugins.timetracking.TimeTrackingConfig.CONFIG
 import static net.runelite.client.plugins.timetracking.TimeTrackingConfig.PREFER_SOONEST;
 import static net.runelite.client.plugins.timetracking.TimeTrackingConfig.STOPWATCHES;
 import static net.runelite.client.plugins.timetracking.TimeTrackingConfig.TIMERS;
+import static net.runelite.client.plugins.timetracking.TimeTrackingConfig.FAVOURITETIMERS;
+import static net.runelite.client.plugins.timetracking.TimeTrackingConfig.FAVOURITESTOPWATCHES;
 import net.runelite.client.plugins.timetracking.clocks.ClockManager;
 import net.runelite.client.plugins.timetracking.farming.CompostTracker;
 import net.runelite.client.plugins.timetracking.farming.FarmingContractManager;
@@ -203,7 +205,7 @@ public class TimeTrackingPlugin extends Plugin
 	@Subscribe
 	public void onCommandExecuted(CommandExecuted commandExecuted)
 	{
-		if (commandExecuted.getCommand().equals("resetfarmtick"))
+		if (commandExecuted.getCommand().equalsIgnoreCase("resetfarmtick"))
 		{
 			configManager.unsetRSProfileConfiguration(CONFIG_GROUP, TimeTrackingConfig.FARM_TICK_OFFSET_PRECISION);
 			configManager.unsetRSProfileConfiguration(CONFIG_GROUP, TimeTrackingConfig.FARM_TICK_OFFSET);
