@@ -27,6 +27,7 @@ package net.runelite.client.plugins.timetracking;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.runelite.client.config.Notification;
 import net.runelite.client.config.Units;
 
 @ConfigGroup("timetracking")
@@ -39,6 +40,8 @@ public interface TimeTrackingConfig extends Config
 	String BIRD_HOUSE = "birdhouse";
 	String TIMERS = "timers";
 	String STOPWATCHES = "stopwatches";
+	String FAVOURITETIMERS = "favouriteTimers";
+	String FAVOURITESTOPWATCHES = "favouriteStopwatches";
 	String PREFER_SOONEST = "preferSoonest";
 	String NOTIFY = "notify";
 	String BIRDHOUSE_NOTIFY = "birdHouseNotification";
@@ -62,9 +65,9 @@ public interface TimeTrackingConfig extends Config
 		description = "Notify you whenever a timer has finished counting down",
 		position = 2
 	)
-	default boolean timerNotification()
+	default Notification timerNotification()
 	{
-		return false;
+		return Notification.OFF;
 	}
 
 	@ConfigItem(
