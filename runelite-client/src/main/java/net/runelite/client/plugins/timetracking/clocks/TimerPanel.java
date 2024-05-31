@@ -35,9 +35,41 @@ class TimerPanel extends ClockPanel
 {
 	private static final Color WARNING_COLOR = ColorScheme.BRAND_ORANGE;
 
-	TimerPanel(ClockManager clockManager, Timer timer)
-	{
+	TimerPanel(ClockManager clockManager, Timer timer) {
 		super(clockManager, timer, "timer", true);
+
+
+
+		if (timer.isFavourite()) {
+			JButton favouriteButton = new JButton(ClockTabPanel.ON_STAR_ICON);
+			favouriteButton.setRolloverIcon(ClockTabPanel.ON_STAR_ICON_HOVER);
+			SwingUtil.removeButtonDecorations(favouriteButton);
+			favouriteButton.setPreferredSize(new Dimension(16, 14));
+			favouriteButton.setToolTipText("Unfavourite timer");
+
+			favouriteButton.addActionListener(e ->
+			{
+				timer.setFavourite(!timer.isFavourite());
+				clockManager.favouriteTimer(timer);
+			});
+
+			leftActions.add(favouriteButton);
+		}
+		else {
+			JButton favouriteButton = new JButton(ClockTabPanel.OFF_STAR_ICON);
+			favouriteButton.setRolloverIcon(ClockTabPanel.OFF_STAR_ICON_HOVER);
+			SwingUtil.removeButtonDecorations(favouriteButton);
+			favouriteButton.setPreferredSize(new Dimension(16, 14));
+			favouriteButton.setToolTipText("Favourite timer");
+
+			favouriteButton.addActionListener(e ->
+			{
+				timer.setFavourite(!timer.isFavourite());
+				clockManager.favouriteTimer(timer);
+			});
+
+			leftActions.add(favouriteButton);
+		}
 
 		JToggleButton loopButton = new JToggleButton(ClockTabPanel.LOOP_ICON);
 		loopButton.setRolloverIcon(ClockTabPanel.LOOP_ICON_HOVER);
@@ -60,20 +92,17 @@ class TimerPanel extends ClockPanel
 	}
 
 	@Override
-	void updateDisplayInput()
-	{
+	void updateDisplayInput() {
 		super.updateDisplayInput();
 
 		Timer timer = (Timer) getClock();
-		if (timer.isWarning())
-		{
+		if (timer.isWarning()) {
 			displayInput.getTextField().setForeground(getColor());
 		}
 	}
 
 	@Override
-	protected Color getColor()
-	{
+	protected Color getColor() {
 		Timer timer = (Timer) getClock();
 		Color warningColor = timer.isActive() ? WARNING_COLOR : WARNING_COLOR.darker();
 
